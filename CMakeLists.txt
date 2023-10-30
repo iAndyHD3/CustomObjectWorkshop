@@ -3,6 +3,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_OSX_ARCHITECTURES "x86_64")
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_CONFIGURATION_TYPES Release;RelWithDebInfo)
 
 project(CustomObjectWorkshop VERSION 1.0.0)
 
@@ -20,7 +21,7 @@ else()
 endif()
 
 add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
-
+	
 setup_geode_mod(${PROJECT_NAME})
 
 if(MSVC)

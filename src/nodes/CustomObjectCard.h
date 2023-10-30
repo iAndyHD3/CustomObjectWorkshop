@@ -13,6 +13,7 @@ struct CustomObjectCardMembers
 class CustomObjectCard : public CCMenuItemSpriteExtra
 {
 public:
+	cocos2d::CCSprite* icons_bg = nullptr;
 	CustomObjectCardMembers m {};
 
 	static CustomObjectCard* create(const CustomObjectCardMembers& data, cocos2d::CCObject* target, cocos2d::SEL_MenuHandler callback);
