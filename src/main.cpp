@@ -1,18 +1,50 @@
 #include <Geode/Geode.hpp>
 #include <Geode/utils/cocos.hpp>
 #include <Geode/modify/MenuLayer.hpp>
+#include <Geode/modify/EditorUI.hpp>
 #include "nodes/CustomObjectCard.h"
+#include <Geode/utils/web.hpp>
+#include <json.hpp>
 
 using namespace geode::prelude;
 using namespace cocos2d;
 
 class MyPopup : public geode::Popup<>
 {
-	void nothing(CCObject*)
-	{
-	}
+	CCMenu* cardMenu = nullptr;
+
+	void nothing(CCObject* /*sender*/) {}
 
 protected:
+	void handleResponse(std::string_view resp)
+	{
+		geode::log::info("resp: {}", resp);
+		if (!cardMenu) return;
+
+		try
+		{
+			json::Value jsonResp = json::parse(resp);
+			cardMenu->removeAllChildrenWithCleanup(true);
+			for (const json::Value& j : jsonResp["data"].as_array())
+			{
+				cardMenu->addChild(CustomObjectCard::create(
+					{.objectData = j.as<CustomObjectData>(), .editor = nullptr}, nullptr, nullptr));
+			}
+			cardMenu->updateLayout();
+		}
+		catch (std::exception& e)
+		{
+			geode::log::error("CATCHED: {}", e.what());
+		}
+	}
+
+	void addCards(int page)
+	{
+		web::AsyncWebRequest()
+			.fetch(std::format("https://hyperbolus.net/api/stencils?page={}", page))
+			.text()
+			.then([this](const std::string& r) { handleResponse(r); });
+	}
 	bool setup() override
 	{
 		auto winSize = CCDirector::sharedDirector()->getWinSize();
@@ -25,7 +57,7 @@ protected:
 		m_mainLayer->addChild(buttonMenu);
 
 		auto getBtn = [this](const char* title) {
-			auto on = SearchButton::create("GJ_longBtn02_001.png", title, 0.5f, nullptr);
+			auto on	 = SearchButton::create("GJ_longBtn02_001.png", title, 0.5f, nullptr);
 			auto off = SearchButton::create("GJ_longBtn01_001.png", title, 0.5f, nullptr);
 			on->setScale(0.7f);
 			off->setScale(0.7f);
@@ -36,7 +68,6 @@ protected:
 		buttonMenu->addChild(getBtn("recent"));
 		buttonMenu->addChild(getBtn("favorite"));
 
-
 		auto alignLeft = [](CCNode* node, float posX, float offset) {
 			node->setPositionX(node->getPositionX() - (posX / 2) + (node->getContentSize().width / 2) + offset);
 		};
@@ -46,15 +77,12 @@ protected:
 		constexpr float btnOffsetX = 10.0f;
 		alignLeft(buttonMenu, m_size.width, btnOffsetX);
 
-		auto cardMenu = CCMenu::create();
-		cardMenu->setContentSize({ 350, 80 });
+		cardMenu = CCMenu::create();
+		cardMenu->setContentSize({350, 80});
 		cardMenu->setLayout(RowLayout::create()->setGrowCrossAxis(true)->setGap(10.0f));
 
-		for (int i = 0; i < 6; i++)
-		{
-			auto card = CustomObjectCard::create({}, this, menu_selector(MyPopup::nothing));
-			cardMenu->addChild(card);
-		}
+		this->addCards(0);
+
 		cardMenu->updateLayout();
 		m_mainLayer->addChild(cardMenu);
 		cardMenu->setPositionX(cardMenu->getPositionX() + 35.0f);
@@ -77,20 +105,24 @@ public:
 	}
 };
 
-
-class $modify(MenuLayer)
+struct MenuLayerExt : geode::Modify<MenuLayerExt, MenuLayer>
 {
 	void onMoreGames(CCObject*)
 	{
-		//std::exit(1);
-		//CCDictionary* customObjects = GameManager::sharedState()->m_customObjectDict;
-		//CCDictElement* pElement;
-		//CCDICT_FOREACH(customObjects, pElement)
+		// std::exit(1);
+		// CCDictionary* customObjects = GameManager::sharedState()->m_customObjectDict;
+		// CCDictElement* pElement;
+		// CCDICT_FOREACH(customObjects, pElement)
 		//{
 		//	const char* key = pElement->getStrKey();
 		//	CCString* str = (CCString*)pElement->getObject();
 		//	log::info("key: {}, str:{}\n", key, str->getCString());
-		//}
+		// }
 		MyPopup::create()->show();
 	}
+};
+
+struct EditorUIExt : geode::Modify<EditorUIExt, EditorUI>
+{
+	void onPlayback(CCObject*) { MyPopup::create()->show(); }
 };
