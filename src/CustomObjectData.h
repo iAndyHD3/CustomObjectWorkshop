@@ -11,7 +11,6 @@ struct CustomObjectAuthor
 
 struct CustomObjectData
 {
-
 	int object_id = 0;
 	std::string name{};
 	std::string desc{};

@@ -37,6 +37,22 @@ bool CustomObjectCard::init(CCObject* target, SEL_MenuHandler callback)
 
 	geode::log::info("name: {}, author: {}", m.objectData.name, m.objectData.author.name);
 
+	if (!m.objectData.name.empty())
+	{
+		auto nameLabel = CCLabelBMFont::create(m.objectData.name.c_str(), "bigFont.fnt");
+		nameLabel->limitLabelWidth(90.0f, 0.5f, 0.0f);
+		nameLabel->setPosition(icons_bg->getPosition() - CCPoint(0.0f, 40.0f));
+		addChild(nameLabel);
+	}
+
+	if (!m.objectData.author.name.empty())
+	{
+		auto authorLabel = CCLabelBMFont::create(m.objectData.author.name.c_str(), "goldFont.fnt");
+		authorLabel->limitLabelWidth(90.0f, 0.5f, 0.0f);
+		authorLabel->setPosition(icons_bg->getPosition() - CCPoint(0.0f, 55.0f));
+		addChild(authorLabel);
+	}
+
 	return true;
 }
 
