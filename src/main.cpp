@@ -4,7 +4,6 @@
 #include <Geode/modify/EditorUI.hpp>
 #include "nodes/CustomObjectCard.h"
 #include "nodes/WorkshopPopup.h"
-#include <Geode/utils/web.hpp>
 #include <json.hpp>
 
 using namespace geode::prelude;

@@ -1,13 +1,15 @@
 #include "WorkshopPopup.h"
 #include "CustomObjectCard.h"
 #include "json.hpp"
+#include <Geode/utils/web.hpp>
+#include <fmt/format.h>
 
 using namespace cocos2d;
 
 // clang-format off
 bool WorkshopPopup::addCard(const json::Value& j)
 {
-	if (!cardMenu) return false;
+	if (!_cardMenu) return false;
 	
 	auto card = CustomObjectCard::create
 	(
@@ -17,7 +19,7 @@ bool WorkshopPopup::addCard(const json::Value& j)
 	);
 	
 	if(!card) return false;
-	cardMenu->addChild(card);
+	_cardMenu->addChild(card);
 	return true;
 }
 // clang-format on
@@ -54,48 +56,83 @@ bool WorkshopPopup::setup()
 	constexpr float btnOffsetX = 10.0f;
 	alignLeft(buttonMenu, m_size.width, btnOffsetX);
 
-	cardMenu = CCMenu::create();
-	cardMenu->setContentSize({350, 260});
-	cardMenu->setLayout(RowLayout::create()->setGrowCrossAxis(true)->setGap(10.0f));
+	_cardMenu = CCMenu::create();
+	_cardMenu->setContentSize({350, 260});
+	_cardMenu->setLayout(RowLayout::create()->setGrowCrossAxis(true)->setGap(10.0f));
 
-	this->makeRequest(0);
+	this->openPage(0, 6);
 
-	m_mainLayer->addChild(cardMenu);
-	cardMenu->setPositionX(cardMenu->getPositionX() + 35.0f);
-	cardMenu->setPositionY(cardMenu->getPositionY() - 5.0f);
+	m_mainLayer->addChild(_cardMenu);
+	_cardMenu->setPositionX(_cardMenu->getPositionX() + 35.0f);
+	_cardMenu->setPositionY(_cardMenu->getPositionY() + 10.0f);
 
-	fillEmpty();
-	cardMenu->updateLayout();
+	updatePageButtons();
 
 	return true;
 }
 
-void WorkshopPopup::makeRequest(int /*page*/)
+void WorkshopPopup::updatePageButtons()
 {
-	for (int i = 0; i < 2; i++)
+	constexpr float buttonScale = 0.6f;
+
+	if (!_selectPageMenu)
 	{
-		addEmptyCard();
+		_selectPageMenu = CCMenu::create();
+		_selectPageMenu->setLayout(RowLayout::create());
+		CCPoint pos = _cardMenu->getPosition();
+		pos.y -= _cardMenu->getContentSize().height / 2;
+		pos.y -= buttonScale * 10;
+
+		_selectPageMenu->setPosition(pos);
+		m_mainLayer->addChild(_selectPageMenu);
 	}
 
-	// web::AsyncWebRequest()
-	//	.fetch(std::format("https://hyperbolus.net/api/stencils?page={}", page))
-	//	.text()
-	//	.then([this](const std::string& r) { handleResponse(r); });
+	if (!_prevBtn)
+	{
+		auto spr = CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
+		spr->setScale(buttonScale);
+		_prevBtn = CCMenuItemSpriteExtra::create(spr, nullptr, this, menu_selector(WorkshopPopup::onPrevious));
+		_selectPageMenu->addChild(_prevBtn);
+	}
+
+	if (!_nextBtn)
+	{
+		auto spr = CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
+		spr->setFlipX(true);
+		spr->setScale(buttonScale);
+		_nextBtn = CCMenuItemSpriteExtra::create(spr, nullptr, this, menu_selector(WorkshopPopup::onNext));
+		_selectPageMenu->addChild(_nextBtn);
+	}
+
+	_selectPageMenu->updateLayout();
+}
+
+void WorkshopPopup::onNext(cocos2d::CCObject*) {}
+
+void WorkshopPopup::onPrevious(cocos2d::CCObject*) {}
+
+void WorkshopPopup::openPage(int page, int perPage)
+{
+	geode::utils::web::AsyncWebRequest()
+		.fetch(fmt::format("https://hyperbolus.net/api/stencils?page={}&perPage={}", page, perPage))
+		.text()
+		.then([this](const std::string& r) { handleResponse(r); });
 }
 
 void WorkshopPopup::handleResponse(std::string_view resp)
 {
 	geode::log::info("resp: {}", resp);
-	if (!cardMenu) return;
+	if (!_cardMenu) return;
 
 	try
 	{
 		json::Value jsonResp = json::parse(resp);
-		cardMenu->removeAllChildrenWithCleanup(true);
+		_cardMenu->removeAllChildrenWithCleanup(true);
 		for (const json::Value& j : jsonResp["data"].as_array())
 		{
 			this->addCard(j);
 		}
+		_cardMenu->updateLayout();
 	}
 	catch (std::exception& e)
 	{
@@ -105,8 +142,8 @@ void WorkshopPopup::handleResponse(std::string_view resp)
 
 void WorkshopPopup::fillEmpty()
 {
-	if (!cardMenu) return;
-	while (cardMenu->getChildrenCount() < 5)
+	if (!_cardMenu) return;
+	while (_cardMenu->getChildrenCount() < 5)
 	{
 		addEmptyCard(false);
 	}
@@ -114,19 +151,19 @@ void WorkshopPopup::fillEmpty()
 
 bool WorkshopPopup::addEmptyCard(bool visible)
 {
-	if (!cardMenu) return false;
+	if (!_cardMenu) return false;
 	auto card = CustomObjectCard::create({}, this, menu_selector(WorkshopPopup::nothing));
 	if (!card) return false;
 
 	card->setVisible(visible);
-	cardMenu->addChild(card);
+	_cardMenu->addChild(card);
 	return true;
 }
 
 WorkshopPopup* WorkshopPopup::create()
 {
 	auto ret = new WorkshopPopup();
-	if (ret && ret->init(430.0f, 310.0f))
+	if (ret && ret->init(430.0f, 295.0f))
 	{
 		ret->autorelease();
 		return ret;
