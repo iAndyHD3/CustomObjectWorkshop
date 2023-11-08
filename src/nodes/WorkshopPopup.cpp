@@ -66,8 +66,6 @@ bool WorkshopPopup::setup()
 	_cardMenu->setPositionX(_cardMenu->getPositionX() + 35.0f);
 	_cardMenu->setPositionY(_cardMenu->getPositionY() + 10.0f);
 
-	updatePageButtons();
-
 	return true;
 }
 
@@ -87,32 +85,55 @@ void WorkshopPopup::updatePageButtons()
 		m_mainLayer->addChild(_selectPageMenu);
 	}
 
+	auto addButton =
+		[this](CCMenuItemSpriteExtra** btnMember, CCSprite* spr, SEL_MenuHandler callback, bool updateLayout = false) {
+		spr->setScale(buttonScale);
+		*btnMember = CCMenuItemSpriteExtra::create(spr, nullptr, this, callback);
+		_selectPageMenu->addChild(*btnMember);
+		if (updateLayout) _selectPageMenu->updateLayout();
+	};
+
 	if (!_prevBtn)
 	{
-		auto spr = CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
-		spr->setScale(buttonScale);
-		_prevBtn = CCMenuItemSpriteExtra::create(spr, nullptr, this, menu_selector(WorkshopPopup::onPrevious));
-		_selectPageMenu->addChild(_prevBtn);
+		addButton(
+			&_prevBtn, CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png"),
+			menu_selector(WorkshopPopup::onPrevious));
+	}
+
+	if (!_currentPageBtn)
+	{
+		addButton(
+			&_currentPageBtn,
+			ButtonSprite::create(fmt::format("{}", _currentPage).c_str(), "bigFont.fnt", "GJ_button_02.png"),
+			menu_selector(WorkshopPopup::nothing));
+	}
+	else
+	{
+		auto spr = geode::cast::safe_cast<ButtonSprite*>(_currentPageBtn->getChildren()->objectAtIndex(0));
+		if (spr) spr->setString(fmt::format("{}", _currentPage).c_str());
 	}
 
 	if (!_nextBtn)
 	{
 		auto spr = CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
 		spr->setFlipX(true);
-		spr->setScale(buttonScale);
-		_nextBtn = CCMenuItemSpriteExtra::create(spr, nullptr, this, menu_selector(WorkshopPopup::onNext));
-		_selectPageMenu->addChild(_nextBtn);
+		addButton(&_nextBtn, spr, menu_selector(WorkshopPopup::onNext), true);
 	}
-
-	_selectPageMenu->updateLayout();
 }
 
-void WorkshopPopup::onNext(cocos2d::CCObject*) {}
+void WorkshopPopup::onNext(cocos2d::CCObject*)
+{
+
+	int nextPage = _currentPage + 1;
+	openPage(nextPage, 6);
+}
 
 void WorkshopPopup::onPrevious(cocos2d::CCObject*) {}
 
 void WorkshopPopup::openPage(int page, int perPage)
 {
+	_cardMenu->removeAllChildrenWithCleanup(true);
+
 	geode::utils::web::AsyncWebRequest()
 		.fetch(fmt::format("https://hyperbolus.net/api/stencils?page={}&perPage={}", page, perPage))
 		.text()
@@ -127,17 +148,20 @@ void WorkshopPopup::handleResponse(std::string_view resp)
 	try
 	{
 		json::Value jsonResp = json::parse(resp);
-		_cardMenu->removeAllChildrenWithCleanup(true);
 		for (const json::Value& j : jsonResp["data"].as_array())
 		{
 			this->addCard(j);
 		}
-		_cardMenu->updateLayout();
+		_currentPage = jsonResp["current_page"].as_int();
 	}
 	catch (std::exception& e)
 	{
 		geode::log::error("CATCHED: {}", e.what());
+		return;
 	}
+
+	_cardMenu->updateLayout();
+	updatePageButtons();
 }
 
 void WorkshopPopup::fillEmpty()
