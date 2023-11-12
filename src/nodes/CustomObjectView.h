@@ -1,11 +1,19 @@
 #include <Geode/Geode.hpp>
 #include "../CustomObjectData.h"
 
-class CustomObjectView : public geode::Popup<CustomObjectData*>
+struct CustomObjectView : public geode::Popup<CustomObjectData*>
 {
-public:
 	CustomObjectData* _data = nullptr;
 
 	bool setup(CustomObjectData*) override;
 	static CustomObjectView* create(CustomObjectData*);
+
+	void onWebsite(CCObject*);
+	void onRate(CCObject*);
+	void onFavorites(CCObject*);
+	void onEditor(CCObject*);
+	void onCustomObjects(CCObject*);
+	void onCopyJson(CCObject*);
+	void onSaveJson(CCObject*);
+	void onComingSoon(CCObject*);
 };

@@ -1,11 +1,15 @@
 #include "CustomObjectView.h"
 #include <array>
 #include <utility>
+#include <Geode/modify/EditorUI.hpp>
 
 using namespace cocos2d;
 
+
 bool CustomObjectView::setup(CustomObjectData* data)
 {
+	_data = data;
+
 	auto winSize = CCDirector::sharedDirector()->getWinSize();
 
 	// convenience function provided by Popup
@@ -37,13 +41,13 @@ bool CustomObjectView::setup(CustomObjectData* data)
 
 	constexpr auto buttons = std::to_array<std::pair<const char*, SEL_MenuHandler>>
 	({
-		{"Add Editor", nullptr},
-		{"Add Custom Objects", nullptr},
-		{"Favorites", nullptr},
-		{"Website", nullptr},
-		{"Rate", nullptr},
-		{"Save as file", nullptr},
-		{"Copy json", nullptr}
+		{"Add Editor",         menu_selector(CustomObjectView::onEditor)},
+		{"Add Custom Objects", menu_selector(CustomObjectView::onCustomObjects)},
+		{"Favorites",          menu_selector(CustomObjectView::onComingSoon)},
+		{"Website",            menu_selector(CustomObjectView::onWebsite)},
+		{"Rate",               menu_selector(CustomObjectView::onComingSoon)},
+		{"Save as file",       menu_selector(CustomObjectView::onSaveJson)},
+		{"Copy json",          menu_selector(CustomObjectView::onCopyJson)}
 	});
 
 	for (const auto& [text, callback] : buttons)
@@ -57,12 +61,54 @@ bool CustomObjectView::setup(CustomObjectData* data)
 	btnMenu->updateLayout();
 
 
-
-
-
 	return true;
 }
 
+
+
+void CustomObjectView::onWebsite(CCObject*)
+{
+	CCApplication::sharedApplication()->openURL(
+		fmt::format("{}/{}", "https://hyperbolus.net/stencil", _data->object_id).c_str()
+	);
+}
+void CustomObjectView::onRate(CCObject*)
+{
+
+}
+void CustomObjectView::onFavorites(CCObject*) {}
+void CustomObjectView::onEditor(CCObject*) {}
+void CustomObjectView::onCustomObjects(CCObject*)
+{
+	auto gm = GameManager::get();
+
+	CCDictionary* customObjects = gm->m_customObjectDict;
+	unsigned int count          = customObjects->count();
+
+	gm->addNewCustomObject(_data->object_string);
+
+	if (auto* ui = EditorUI::get())
+	{
+		ui->reloadCustomItems();
+	}
+
+	if (count + 1 == customObjects->count())
+	{
+		auto notification = geode::Notification::create(fmt::format("Added {} by {}", _data->name, _data->author.name));
+		notification->setIcon(geode::NotificationIcon::Success);
+		notification->show();
+	}
+}
+
+void CustomObjectView::onCopyJson(CCObject*) {}
+void CustomObjectView::onSaveJson(CCObject*) {}
+
+void CustomObjectView::onComingSoon(CCObject*)
+{
+	auto n = geode::Notification::create("Action coming soon");
+	n->setIcon(geode::NotificationIcon::Error);
+	n->show();
+}
 
 CustomObjectView* CustomObjectView::create(CustomObjectData* data)
 {
