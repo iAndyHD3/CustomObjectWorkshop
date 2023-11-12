@@ -74,19 +74,21 @@ void WorkshopPopup::updatePageButtons()
 		_selectPageMenu = CCMenu::create();
 		_selectPageMenu->setLayout(RowLayout::create());
 		CCPoint pos = _cardMenu->getPosition();
-		pos.y -= _cardMenu->getContentSize().height / 2;
-		pos.y -= buttonScale * 10;
+		pos.y -= _cardMenu->getContentSize().height / 2 + 17;
 
 		_selectPageMenu->setPosition(pos);
 		m_mainLayer->addChild(_selectPageMenu);
 	}
 
 	auto addButton =
-		[this](CCMenuItemSpriteExtra** btnMember, CCSprite* spr, SEL_MenuHandler callback, bool updateLayout = false) {
+		[this](CCMenuItemSpriteExtra** btn, CCSprite* spr, SEL_MenuHandler callback, bool updateLayout = false) {
 		spr->setScale(buttonScale);
-		*btnMember = CCMenuItemSpriteExtra::create(spr, nullptr, this, callback);
-		_selectPageMenu->addChild(*btnMember);
-		if (updateLayout) _selectPageMenu->updateLayout();
+		*btn = CCMenuItemSpriteExtra::create(spr, nullptr, this, callback);
+		_selectPageMenu->addChild(*btn);
+		if (updateLayout)
+		{
+			_selectPageMenu->updateLayout();
+		}
 	};
 
 	if (!_prevBtn)
@@ -95,13 +97,12 @@ void WorkshopPopup::updatePageButtons()
 			&_prevBtn, CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png"),
 			menu_selector(WorkshopPopup::onPrevious));
 	}
+	_prevBtn->setVisible(_currentPage != 1);
 
 	if (!_currentPageBtn)
 	{
-		addButton(
-			&_currentPageBtn,
-			ButtonSprite::create(fmt::format("{}", _currentPage).c_str(), "bigFont.fnt", "GJ_button_02.png"),
-			menu_selector(WorkshopPopup::onCard));
+		auto spr = ButtonSprite::create(fmt::format("{}", _currentPage).c_str(), "bigFont.fnt", "GJ_button_02.png");
+		addButton(&_currentPageBtn, spr, menu_selector(WorkshopPopup::onCard));
 	}
 	else
 	{
@@ -115,11 +116,14 @@ void WorkshopPopup::updatePageButtons()
 		spr->setFlipX(true);
 		addButton(&_nextBtn, spr, menu_selector(WorkshopPopup::onNext), true);
 	}
+	else
+	{
+		_nextBtn->setVisible(_currentPage != _maxPage);
+	}
 }
 
 void WorkshopPopup::onNext(cocos2d::CCObject*)
 {
-
 	int nextPage = _currentPage + 1;
 	openPage(nextPage, 6);
 }
@@ -157,6 +161,7 @@ void WorkshopPopup::handleResponse(std::string_view resp)
 			this->addCard(j);
 		}
 		_currentPage = jsonResp["current_page"].as_int();
+		_maxPage     = jsonResp["last_page"].as_int();
 	}
 	catch (std::exception& e)
 	{
