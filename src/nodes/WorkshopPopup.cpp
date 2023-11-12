@@ -1,5 +1,6 @@
 #include "WorkshopPopup.h"
 #include "CustomObjectCard.h"
+#include "CustomObjectView.h"
 #include "json.hpp"
 #include <Geode/utils/web.hpp>
 #include <fmt/format.h>
@@ -11,14 +12,9 @@ bool WorkshopPopup::addCard(const json::Value& j)
 {
 	if (!_cardMenu) return false;
 	
-	auto card = CustomObjectCard::create
-	(
-		{.objectData = j.as<CustomObjectData>(), .editor = nullptr},
-		this,
-		menu_selector(WorkshopPopup::nothing)
-	);
-	
+	auto card = CustomObjectCard::create(j.as<CustomObjectData>(), this, menu_selector(WorkshopPopup::onCard));
 	if(!card) return false;
+
 	_cardMenu->addChild(card);
 	return true;
 }
@@ -105,7 +101,7 @@ void WorkshopPopup::updatePageButtons()
 		addButton(
 			&_currentPageBtn,
 			ButtonSprite::create(fmt::format("{}", _currentPage).c_str(), "bigFont.fnt", "GJ_button_02.png"),
-			menu_selector(WorkshopPopup::nothing));
+			menu_selector(WorkshopPopup::onCard));
 	}
 	else
 	{
@@ -129,6 +125,14 @@ void WorkshopPopup::onNext(cocos2d::CCObject*)
 }
 
 void WorkshopPopup::onPrevious(cocos2d::CCObject*) {}
+
+void WorkshopPopup::onCard(cocos2d::CCObject* sender)
+{
+	if (auto card = geode::cast::safe_cast<CustomObjectCard*>(sender))
+	{
+		CustomObjectView::create(&card->_objectData)->show();
+	}
+}
 
 void WorkshopPopup::openPage(int page, int perPage)
 {
@@ -176,7 +180,7 @@ void WorkshopPopup::fillEmpty()
 bool WorkshopPopup::addEmptyCard(bool visible)
 {
 	if (!_cardMenu) return false;
-	auto card = CustomObjectCard::create({}, this, menu_selector(WorkshopPopup::nothing));
+	auto card = CustomObjectCard::create({}, this, menu_selector(WorkshopPopup::onCard));
 	if (!card) return false;
 
 	card->setVisible(visible);

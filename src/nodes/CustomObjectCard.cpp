@@ -4,8 +4,7 @@
 using namespace cocos2d;
 using geode::cocos::CCArrayExt;
 
-CustomObjectCard*
-CustomObjectCard::create(const CustomObjectCardMembers& data, CCObject* target, SEL_MenuHandler callback)
+CustomObjectCard* CustomObjectCard::create(const CustomObjectData& data, CCObject* target, SEL_MenuHandler callback)
 {
 	auto* ret = new CustomObjectCard(data);
 	if (ret && ret->init(target, callback))
@@ -35,19 +34,19 @@ bool CustomObjectCard::init(CCObject* target, SEL_MenuHandler callback)
 	this->addChild(icons_bg);
 	icons_bg->setOpacity(50);
 
-	geode::log::info("name: {}, author: {}", m.objectData.name, m.objectData.author.name);
+	geode::log::info("name: {}, author: {}", _objectData.name, _objectData.author.name);
 
-	if (!m.objectData.name.empty())
+	if (!_objectData.name.empty())
 	{
-		auto nameLabel = CCLabelBMFont::create(m.objectData.name.c_str(), "bigFont.fnt");
+		auto nameLabel = CCLabelBMFont::create(_objectData.name.c_str(), "bigFont.fnt");
 		nameLabel->limitLabelWidth(90.0f, 0.5f, 0.0f);
 		nameLabel->setPosition(icons_bg->getPosition() - CCPoint(0.0f, 40.0f));
 		addChild(nameLabel);
 	}
 
-	if (!m.objectData.author.name.empty())
+	if (!_objectData.author.name.empty())
 	{
-		auto authorLabel = CCLabelBMFont::create(m.objectData.author.name.c_str(), "goldFont.fnt");
+		auto authorLabel = CCLabelBMFont::create(_objectData.author.name.c_str(), "goldFont.fnt");
 		authorLabel->limitLabelWidth(90.0f, 0.5f, 0.0f);
 		authorLabel->setPosition(icons_bg->getPosition() - CCPoint(0.0f, 55.0f));
 		addChild(authorLabel);

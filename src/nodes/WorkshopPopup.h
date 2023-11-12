@@ -32,7 +32,7 @@ private:
 	void onNext(cocos2d::CCObject*);
 	void onPrevious(cocos2d::CCObject*);
 
-	void nothing(cocos2d::CCObject*) {}
+	void onCard(cocos2d::CCObject*);
 
 protected:
 	// returns false if it couldnt't add card, feel free to ignore

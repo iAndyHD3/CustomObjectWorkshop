@@ -6,7 +6,6 @@
 #include "nodes/WorkshopPopup.h"
 #include <json.hpp>
 
-using namespace geode::prelude;
 using namespace cocos2d;
 
 struct MenuLayerExt : geode::Modify<MenuLayerExt, MenuLayer>
