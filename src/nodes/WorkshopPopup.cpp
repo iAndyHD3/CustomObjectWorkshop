@@ -7,6 +7,7 @@
 
 using namespace cocos2d;
 
+
 // clang-format off
 bool WorkshopPopup::addCard(const json::Value& j)
 {
@@ -25,7 +26,8 @@ bool WorkshopPopup::setup()
 	auto winSize = CCDirector::sharedDirector()->getWinSize();
 	m_closeBtn->setPosition(m_size.width / 2 + 3.f, m_size.height / 2 - 3.f);
 
-	this->setTitle("Custom Object Workshop");
+	//m_title->setVisible(false);
+	//this->setTitle("Custom Object Workshop");
 
 	auto buttonMenu = CCMenu::create();
 	buttonMenu->setLayout(ColumnLayout::create());
@@ -55,12 +57,18 @@ bool WorkshopPopup::setup()
 	_cardMenu = CCMenu::create();
 	_cardMenu->setContentSize({350, 260});
 	_cardMenu->setLayout(RowLayout::create()->setGrowCrossAxis(true)->setGap(10.0f));
-
-	this->openPage(0, 6);
-
+	//_cardMenu->setPositionX(_cardMenu->getPositionX() + 35.0f);
+	//_cardMenu->setPositionY(_cardMenu->getPositionY() + 10.0f);
+	_cardMenu->setPosition(winSize / 2 + CCPoint(35.0f, 10.0f));
 	m_mainLayer->addChild(_cardMenu);
-	_cardMenu->setPositionX(_cardMenu->getPositionX() + 35.0f);
-	_cardMenu->setPositionY(_cardMenu->getPositionY() + 10.0f);
+
+	_loadingCircle = LoadingCircle::create();
+	_loadingCircle->setParentLayer(m_mainLayer);
+	_loadingCircle->setPositionX(_loadingCircle->getPositionX() + 35.0f);
+	_loadingCircle->setVisible(false); //controlled by open
+	_loadingCircle->show();
+
+	this->openPage(getMainApiEndpoint(0));
 
 	return true;
 }
@@ -122,13 +130,24 @@ void WorkshopPopup::updatePageButtons()
 	}
 }
 
-void WorkshopPopup::onNext(cocos2d::CCObject*)
+
+std::string WorkshopPopup::getMainApiEndpoint(int page)
 {
-	int nextPage = _currentPage + 1;
-	openPage(nextPage, 6);
+	constexpr const char* endpoint = "https://hyperbolus.net/api/stencils?page={}&perPage={}";
+	constexpr int perPage		   = 6;
+
+	return fmt::format(endpoint, page, perPage);
 }
 
-void WorkshopPopup::onPrevious(cocos2d::CCObject*) {}
+void WorkshopPopup::onNext(cocos2d::CCObject*)
+{
+	openPage(getMainApiEndpoint(_currentPage + 1));
+}
+
+void WorkshopPopup::onPrevious(cocos2d::CCObject*)
+{
+	openPage(getMainApiEndpoint(_currentPage - 1));
+}
 
 void WorkshopPopup::onCard(cocos2d::CCObject* sender)
 {
@@ -138,15 +157,38 @@ void WorkshopPopup::onCard(cocos2d::CCObject* sender)
 	}
 }
 
-void WorkshopPopup::openPage(int page, int perPage)
+void WorkshopPopup::openPage(std::string_view apiurl)
 {
-	_cardMenu->removeAllChildrenWithCleanup(true);
+	//request already happening
+	if (_loadingCircle->isVisible()) return;
 
-	geode::utils::web::AsyncWebRequest()
-		.fetch(fmt::format("https://hyperbolus.net/api/stencils?page={}&perPage={}", page, perPage))
+	_cardMenu->removeAllChildrenWithCleanup(true);
+	_loadingCircle->setVisible(true);
+	geode::log::info("Making api request: {}", apiurl);
+	geode::utils::web::AsyncWebRequest().fetch(std::string(apiurl))
 		.text()
 		.then([this](const std::string& r) { handleResponse(r); });
 }
+
+void WorkshopPopup::updateMembers(const json::Value& resp) {
+
+	_currentPage = resp["current_page"].as_int();
+	_maxPage	 = resp["last_page"].as_int();
+
+	if (auto url = resp["next_page_url"]; url.is_string())
+		_nextPageUrl = url.as_string();
+	else
+		_nextPageUrl.clear();
+
+	if (auto url = resp["prev_page_url"]; url.is_string())
+		_prevPageUrl = url.as_string();
+	else 
+		_nextPageUrl.clear();
+
+
+}
+
+
 
 void WorkshopPopup::handleResponse(std::string_view resp)
 {
@@ -160,17 +202,28 @@ void WorkshopPopup::handleResponse(std::string_view resp)
 		{
 			this->addCard(j);
 		}
-		_currentPage = jsonResp["current_page"].as_int();
-		_maxPage     = jsonResp["last_page"].as_int();
+
+		updateMembers(jsonResp);
+
 	}
 	catch (std::exception& e)
 	{
+		
 		geode::log::error("CATCHED: {}", e.what());
+		this->onClose(nullptr);
+		geode::createQuickPopup
+		(
+			"Error",
+			fmt::format("<cr>{}</c>", e.what()),
+			"OK", nullptr, [](FLAlertLayer*, bool){}, true
+		);
+
 		return;
 	}
 
 	_cardMenu->updateLayout();
 	updatePageButtons();
+	_loadingCircle->setVisible(false);
 }
 
 void WorkshopPopup::fillEmpty()

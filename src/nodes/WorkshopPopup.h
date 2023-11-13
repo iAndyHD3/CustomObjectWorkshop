@@ -16,12 +16,13 @@ private:
 	CCMenuItemSpriteExtra* _currentPageBtn = nullptr;
 	CCMenuItemSpriteExtra* _nextBtn		   = nullptr;
 
+	LoadingCircle* _loadingCircle = nullptr;
+
 	int _currentPage = 1;
 	int _maxPage	 = 0;
 
-	std::string _currentPageUrl	 = {};
 	std::string _nextPageUrl	 = {};
-	std::string _previousPageUrl = {};
+	std::string _prevPageUrl = {};
 
 	// devtools crashes for nullptr menu_selector so use this for empty callbacks
 
@@ -41,8 +42,10 @@ protected:
 	// returns false if it couldnt't add card, feel free to ignore
 	bool addEmptyCard(bool visible = true);
 
+	static std::string getMainApiEndpoint(int page);
 	void handleResponse(std::string_view resp);
-	void openPage(int page, int perPage);
+	void openPage(std::string_view apiurl);
+	void updateMembers(const json::Value& resp);
 
 	// fills the cardMenu with empty cards until there are 6
 	// so it aligns correctly if there are less than 6 cards in a page
