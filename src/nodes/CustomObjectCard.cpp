@@ -4,6 +4,8 @@
 using namespace cocos2d;
 using geode::cocos::CCArrayExt;
 
+CCSprite* EditorUI_menuItemFromObjectString(std::string_view objectString);
+
 CustomObjectCard* CustomObjectCard::create(const CustomObjectData& data, CCObject* target, SEL_MenuHandler callback)
 {
 	auto* ret = new CustomObjectCard(data);
@@ -29,10 +31,14 @@ bool CustomObjectCard::init(CCObject* target, SEL_MenuHandler callback)
 	m_bgSprite->setAnchorPoint({0.5f, 0.5f});
 
 	icons_bg = CCSprite::create("square02_001.png");
+	this->addChild(icons_bg);
 	icons_bg->setPosition({bgSize.width / 2, bgSize.width - 26});
 	icons_bg->setScaleY(0.775f);
-	this->addChild(icons_bg);
 	icons_bg->setOpacity(50);
+
+	// auto spr = EditorUI_menuItemFromObjectString(_objectData.object_string);
+	// spr->setPosition(icons_bg->getPosition());
+	// this->addChild(spr);
 
 	geode::log::info("name: {}, author: {}", _objectData.name, _objectData.author.name);
 

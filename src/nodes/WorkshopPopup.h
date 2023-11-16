@@ -3,12 +3,11 @@
 #include <Geode/Geode.hpp>
 #include <string_view>
 
-class WorkshopPopup : public geode::Popup<>
+struct WorkshopPopup : public geode::Popup<>
 {
-public:
 	static WorkshopPopup* create();
+	static std::string getMainApiEndpoint(int page);
 
-private:
 	cocos2d::CCMenu* _cardMenu		 = nullptr;
 	cocos2d::CCMenu* _selectPageMenu = nullptr;
 
@@ -17,14 +16,14 @@ private:
 	CCMenuItemSpriteExtra* _nextBtn		   = nullptr;
 
 	LoadingCircle* _loadingCircle = nullptr;
+	bool _makingRequest			  = false;
 
 	int _currentPage = 1;
 	int _maxPage	 = 0;
+	bool _uploadPage = false;
 
-	std::string _nextPageUrl	 = {};
+	std::string _nextPageUrl = {};
 	std::string _prevPageUrl = {};
-
-	// devtools crashes for nullptr menu_selector so use this for empty callbacks
 
 	bool setup() override;
 
@@ -32,17 +31,14 @@ private:
 
 	void onNext(cocos2d::CCObject*);
 	void onPrevious(cocos2d::CCObject*);
-
 	void onCard(cocos2d::CCObject*);
+	void onUpload(cocos2d::CCObject*);
 
-protected:
-	// returns false if it couldnt't add card, feel free to ignore
 	bool addCard(const json::Value& j);
-
-	// returns false if it couldnt't add card, feel free to ignore
 	bool addEmptyCard(bool visible = true);
 
-	static std::string getMainApiEndpoint(int page);
+	// netwrok funcs
+
 	void handleResponse(std::string_view resp);
 	void openPage(std::string_view apiurl);
 	void updateMembers(const json::Value& resp);

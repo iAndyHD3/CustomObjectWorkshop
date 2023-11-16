@@ -4,8 +4,6 @@
 #include <Geode/Geode.hpp>
 #include "cocos2d.h"
 
-
-
 class CustomObjectCard : public CCMenuItemSpriteExtra
 {
 public:
