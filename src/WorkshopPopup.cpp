@@ -124,10 +124,10 @@ bool WorkshopPopup::setup()
 
 	_cardMenu = CCMenu::create();
 	_cardMenu->setContentSize({350, 260});
-	_cardMenu->setLayout(RowLayout::create()->setGrowCrossAxis(true)->setGap(10.0f));
+	_cardMenu->setLayout(RowLayout::create()->setGrowCrossAxis(true)->setGap(10.0f)->setAxisAlignment(AxisAlignment::Start));
 	//_cardMenu->setPositionX(_cardMenu->getPositionX() + 35.0f);
 	//_cardMenu->setPositionY(_cardMenu->getPositionY() + 10.0f);
-	_cardMenu->setPosition(winSize / 2 + CCPoint(35.0f, 10.0f));
+	_cardMenu->setPosition(winSize / 2 + CCPoint(48.0f, 10.0f));
 	m_mainLayer->addChild(_cardMenu);
 
 	_loadingCircle = LoadingCircle::create();
@@ -135,7 +135,7 @@ bool WorkshopPopup::setup()
 	_loadingCircle->setPositionX(_loadingCircle->getPositionX() + 35.0f);
 	_loadingCircle->show();
 
-	this->openPage(getMainApiEndpoint(0));
+	this->openPageHyperBolus(getMainApiEndpoint(0));
 
 	return true;
 }
@@ -149,11 +149,15 @@ void WorkshopPopup::updatePageButtons()
 		_selectPageMenu = CCMenu::create();
 		_selectPageMenu->setLayout(RowLayout::create());
 		CCPoint pos = _cardMenu->getPosition();
-		pos.y -= _cardMenu->getContentSize().height / 2 + 17;
 
-		_selectPageMenu->setPosition(pos);
+		_selectPageMenu->setPosition(pos - CCPoint(13.0f, _cardMenu->getContentSize().height / 2 + 17));
 		m_mainLayer->addChild(_selectPageMenu);
 	}
+	else
+	{
+		_selectPageMenu->setVisible(!_makingRequest);
+	}
+
 
 	auto addButton =
 		[this](CCMenuItemSpriteExtra** btn, CCSprite* spr, SEL_MenuHandler callback, bool updateLayout = false) {
@@ -198,6 +202,8 @@ void WorkshopPopup::updatePageButtons()
 
 std::string WorkshopPopup::getMainApiEndpoint(int page)
 {
+	if (_uploadPage) page = 0;
+
 	constexpr const char* endpoint = "https://hyperbolus.net/api/stencils?page={}&perPage={}";
 	constexpr int perPage		   = 6;
 
@@ -206,12 +212,26 @@ std::string WorkshopPopup::getMainApiEndpoint(int page)
 
 void WorkshopPopup::onNext(cocos2d::CCObject*)
 {
-	openPage(getMainApiEndpoint(_currentPage + 1));
+	if (_uploadPage)
+	{
+		openPageLocalObjects(_currentPage + 1);
+	}
+	else
+	{
+		openPageHyperBolus(getMainApiEndpoint(_currentPage + 1));
+	}
 }
 
 void WorkshopPopup::onPrevious(cocos2d::CCObject*)
 {
-	openPage(getMainApiEndpoint(_currentPage - 1));
+	if (_uploadPage)
+	{
+		openPageLocalObjects(_currentPage - 1);
+	}
+	else
+	{
+		openPageHyperBolus(getMainApiEndpoint(_currentPage - 1));
+	}
 }
 
 void WorkshopPopup::onCard(cocos2d::CCObject* sender)
@@ -222,7 +242,7 @@ void WorkshopPopup::onCard(cocos2d::CCObject* sender)
 	}
 }
 
-std::vector<std::string> getCustomObjectStrings()
+std::vector<std::string> getLocalCustomObjectStrings()
 {
 	std::vector<std::string> ret;
 	auto dict = geode::cocos::CCDictionaryExt<int, CCString>(GameManager::sharedState()->m_customObjectDict);
@@ -236,21 +256,22 @@ std::vector<std::string> getCustomObjectStrings()
 
 void WorkshopPopup::onUpload(cocos2d::CCObject* sender)
 {
-	// !: state it will switch to
+	if (_makingRequest) return;
+
 	bool on = !reinterpret_cast<CCMenuItemToggler*>(sender)->isOn();
 
-	_uploadPage = on;
-
-	_cardMenu->removeAllChildrenWithCleanup(true);
-	for (const std::string& objectString : getCustomObjectStrings())
+	if (on)
 	{
-		auto card = CustomObjectCard::create({.object_string = objectString}, nullptr, nullptr);
-		_cardMenu->addChild(card);
+		openPageLocalObjects(0);
 	}
-	_cardMenu->updateLayout();
+	else
+	{
+		_selectPageMenu->setVisible(false);
+		openPageHyperBolus(getMainApiEndpoint(0));
+	}
 }
 
-void WorkshopPopup::openPage(std::string_view apiurl)
+void WorkshopPopup::openPageHyperBolus(std::string_view apiurl)
 {
 	if (_makingRequest) return;
 
@@ -270,7 +291,7 @@ void WorkshopPopup::openPage(std::string_view apiurl)
 void WorkshopPopup::updateMembers(const json::Value& resp)
 {
 
-	_currentPage = resp["current_page"].as_int();
+	setCurrentPage(resp["current_page"].as_int());
 	_maxPage	 = resp["last_page"].as_int();
 
 	if (auto url = resp["next_page_url"]; url.is_string()) _nextPageUrl = url.as_string();
@@ -283,6 +304,7 @@ void WorkshopPopup::updateMembers(const json::Value& resp)
 void WorkshopPopup::handleResponse(std::string_view resp)
 {
 	_makingRequest = false;
+	_uploadPage = false;
 
 	geode::log::info("resp: {}", resp);
 	if (!_cardMenu) return;
@@ -307,7 +329,6 @@ void WorkshopPopup::handleResponse(std::string_view resp)
 
 		return;
 	}
-
 	_cardMenu->updateLayout();
 	updatePageButtons();
 	_loadingCircle->setVisible(false);
@@ -315,11 +336,15 @@ void WorkshopPopup::handleResponse(std::string_view resp)
 
 void WorkshopPopup::fillEmpty()
 {
-	if (!_cardMenu) return;
-	while (_cardMenu->getChildrenCount() < 5)
-	{
-		addEmptyCard(false);
-	}
+//	if (!_cardMenu)
+//		return;
+//
+//	if (_cardMenu->getChildrenCount() > 5) return;
+//
+//	while (_cardMenu->getChildrenCount() < 5)
+//	{
+//		addEmptyCard(false);
+//	}
 }
 
 bool WorkshopPopup::addEmptyCard(bool visible)
@@ -331,6 +356,66 @@ bool WorkshopPopup::addEmptyCard(bool visible)
 	card->setVisible(visible);
 	_cardMenu->addChild(card);
 	return true;
+}
+
+
+void WorkshopPopup::openPageLocalObjects(int page)
+{
+	_uploadPage = true;
+
+	std::vector<std::string> objs = getLocalCustomObjectStrings();
+	if (objs.empty())
+	{
+		//TODO
+		return;
+	}
+	constexpr int perPage = 6;
+
+	_cardMenu->removeAllChildrenWithCleanup(true);
+
+	int pageFix      = page <= 0 ? 0 : page - 1; //first page index must be 0 instead of 1
+	int pageIndexEnd = pageFix * perPage + perPage;
+
+	geode::log::info("pageFix: {}, pageIndexEnd: {}", pageFix, pageIndexEnd);
+	try {
+		for (int i = pageFix * perPage; i < pageIndexEnd && static_cast<size_t>(i) < objs.size(); i++)
+		{
+			const std::string& str = objs.at(i); //this first so it can catch properly
+			auto card = CustomObjectCard::create({ .object_string = str, .local = true }, nullptr, nullptr);
+			_cardMenu->addChild(card);
+		}
+	}
+	catch (std::out_of_range&)
+	{
+		geode::log::error("out of bounds");
+	}
+	geode::log::info("aaaaaaaaaa");
+	setCurrentPage(page);
+	geode::log::info("bbbbbb");
+
+	_maxPage = objs.size() / 6;
+	if (objs.size() % 6 != 0) //if there are enough for a no full page
+	{
+		_maxPage += 1;
+	}
+	geode::log::info("ccccccc");
+
+
+
+	updatePageButtons();
+	geode::log::info("dddddddddd");
+
+	fillEmpty();
+	geode::log::info("eeeeeeeeeee");
+
+	_cardMenu->updateLayout();
+	geode::log::info("ffffffffffffff");
+
+}
+
+void WorkshopPopup::setCurrentPage(int page)
+{
+	_currentPage = page <= 0 ? 1 : page;
 }
 
 WorkshopPopup* WorkshopPopup::create()

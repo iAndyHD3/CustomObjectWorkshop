@@ -6,7 +6,6 @@
 struct WorkshopPopup : public geode::Popup<>
 {
 	static WorkshopPopup* create();
-	static std::string getMainApiEndpoint(int page);
 
 	cocos2d::CCMenu* _cardMenu		 = nullptr;
 	cocos2d::CCMenu* _selectPageMenu = nullptr;
@@ -28,7 +27,7 @@ struct WorkshopPopup : public geode::Popup<>
 	bool setup() override;
 
 	void updatePageButtons();
-
+	std::string getMainApiEndpoint(int page);
 	void onNext(cocos2d::CCObject*);
 	void onPrevious(cocos2d::CCObject*);
 	void onCard(cocos2d::CCObject*);
@@ -36,11 +35,13 @@ struct WorkshopPopup : public geode::Popup<>
 
 	bool addCard(const json::Value& j);
 	bool addEmptyCard(bool visible = true);
+	void openPageLocalObjects(int page);
+	void setCurrentPage(int page);
 
 	// netwrok funcs
 
 	void handleResponse(std::string_view resp);
-	void openPage(std::string_view apiurl);
+	void openPageHyperBolus(std::string_view apiurl);
 	void updateMembers(const json::Value& resp);
 
 	// fills the cardMenu with empty cards until there are 6

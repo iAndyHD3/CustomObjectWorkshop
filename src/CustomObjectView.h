@@ -1,5 +1,5 @@
 #include <Geode/Geode.hpp>
-#include "../CustomObjectData.h"
+#include "CustomObjectData.h"
 
 struct CustomObjectView : public geode::Popup<CustomObjectData*>
 {

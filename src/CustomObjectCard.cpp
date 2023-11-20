@@ -36,9 +36,13 @@ bool CustomObjectCard::init(CCObject* target, SEL_MenuHandler callback)
 	icons_bg->setScaleY(0.775f);
 	icons_bg->setOpacity(50);
 
-	// auto spr = EditorUI_menuItemFromObjectString(_objectData.object_string);
-	// spr->setPosition(icons_bg->getPosition());
-	// this->addChild(spr);
+	if (LevelEditorLayer::get())
+	{
+		auto spr = EditorUI_menuItemFromObjectString(_objectData.object_string);
+		spr->setPosition(icons_bg->getPosition());
+		this->addChild(spr);
+	}
+
 
 	geode::log::info("name: {}, author: {}", _objectData.name, _objectData.author.name);
 

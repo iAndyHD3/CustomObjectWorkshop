@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../CustomObjectData.h"
+#include "CustomObjectData.h"
 #include <Geode/Geode.hpp>
 #include "cocos2d.h"
 

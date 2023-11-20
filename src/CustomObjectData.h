@@ -19,6 +19,7 @@ struct CustomObjectData
 	int views	= 0;
 	std::string object_string{};
 	CustomObjectAuthor author{};
+	bool local = false;
 };
 
 // clang-format off

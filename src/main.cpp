@@ -2,8 +2,8 @@
 #include <Geode/utils/cocos.hpp>
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/modify/EditorUI.hpp>
-#include "nodes/CustomObjectCard.h"
-#include "nodes/WorkshopPopup.h"
+#include "CustomObjectCard.h"
+#include "WorkshopPopup.h"
 #include <json.hpp>
 
 using namespace cocos2d;

@@ -5,7 +5,6 @@
 
 using namespace cocos2d;
 
-
 bool CustomObjectView::setup(CustomObjectData* data)
 {
 	_data = data;
@@ -39,16 +38,16 @@ bool CustomObjectView::setup(CustomObjectData* data)
 	btnMenu->setPosition(center - CCPoint(0.0f, 35.0f));
 	m_mainLayer->addChild(btnMenu);
 
-	constexpr auto buttons = std::to_array<std::pair<const char*, SEL_MenuHandler>>
-	({
-		{"Add Editor",         menu_selector(CustomObjectView::onEditor)},
-		{"Add Custom Objects", menu_selector(CustomObjectView::onCustomObjects)},
-		{"Favorites",          menu_selector(CustomObjectView::onComingSoon)},
-		{"Website",            menu_selector(CustomObjectView::onWebsite)},
-		{"Rate",               menu_selector(CustomObjectView::onComingSoon)},
-		{"Save as file",       menu_selector(CustomObjectView::onSaveJson)},
-		{"Copy json",          menu_selector(CustomObjectView::onCopyJson)}
-	});
+	constexpr auto buttons = std::to_array<std::pair<const char*, SEL_MenuHandler>>(
+		{
+			{"Add Editor", menu_selector(CustomObjectView::onEditor)},
+			{"Add Custom Objects", menu_selector(CustomObjectView::onCustomObjects)},
+			//{"Favorites", menu_selector(CustomObjectView::onComingSoon)},
+			{"Website", menu_selector(CustomObjectView::onWebsite)},
+			//{"Rate", menu_selector(CustomObjectView::onComingSoon)},
+			//{"Save as file", menu_selector(CustomObjectView::onSaveJson)},
+			//{"Copy json", menu_selector(CustomObjectView::onCopyJson)}
+		});
 
 	for (const auto& [text, callback] : buttons)
 	{
@@ -60,22 +59,15 @@ bool CustomObjectView::setup(CustomObjectData* data)
 
 	btnMenu->updateLayout();
 
-
 	return true;
 }
-
-
 
 void CustomObjectView::onWebsite(CCObject*)
 {
 	CCApplication::sharedApplication()->openURL(
-		fmt::format("{}/{}", "https://hyperbolus.net/stencil", _data->object_id).c_str()
-	);
+		fmt::format("{}/{}", "https://hyperbolus.net/stencil", _data->object_id).c_str());
 }
-void CustomObjectView::onRate(CCObject*)
-{
-
-}
+void CustomObjectView::onRate(CCObject*) {}
 void CustomObjectView::onFavorites(CCObject*) {}
 void CustomObjectView::onEditor(CCObject*) {}
 void CustomObjectView::onCustomObjects(CCObject*)
@@ -83,7 +75,7 @@ void CustomObjectView::onCustomObjects(CCObject*)
 	auto gm = GameManager::get();
 
 	CCDictionary* customObjects = gm->m_customObjectDict;
-	unsigned int count          = customObjects->count();
+	unsigned int count			= customObjects->count();
 
 	gm->addNewCustomObject(_data->object_string);
 
@@ -113,7 +105,7 @@ void CustomObjectView::onComingSoon(CCObject*)
 CustomObjectView* CustomObjectView::create(CustomObjectData* data)
 {
 	auto ret = new CustomObjectView();
-	if(ret && ret->init(350.0f, 250.0f, data, "GJ_square02.png"))
+	if (ret && ret->init(350.0f, 250.0f, data, "GJ_square02.png"))
 	{
 		ret->autorelease();
 		return ret;
