@@ -2,6 +2,7 @@
 #include <array>
 #include <utility>
 #include <Geode/modify/EditorUI.hpp>
+#include <fmt/format.h>
 
 using namespace cocos2d;
 
@@ -38,18 +39,34 @@ bool CustomObjectView::setup(CustomObjectData* data)
 	btnMenu->setPosition(center - CCPoint(0.0f, 35.0f));
 	m_mainLayer->addChild(btnMenu);
 
-	constexpr auto buttons = std::to_array<std::pair<const char*, SEL_MenuHandler>>(
-		{
-			{"Add Editor", menu_selector(CustomObjectView::onEditor)},
-			{"Add Custom Objects", menu_selector(CustomObjectView::onCustomObjects)},
-			//{"Favorites", menu_selector(CustomObjectView::onComingSoon)},
-			{"Website", menu_selector(CustomObjectView::onWebsite)},
-			//{"Rate", menu_selector(CustomObjectView::onComingSoon)},
-			//{"Save as file", menu_selector(CustomObjectView::onSaveJson)},
-			//{"Copy json", menu_selector(CustomObjectView::onCopyJson)}
-		});
 
-	for (const auto& [text, callback] : buttons)
+	auto buttons = [this]() -> std::vector<std::pair<const char*, SEL_MenuHandler>> {
+		if (_data->local)
+		{
+			return
+			{
+				{"Upload Object", menu_selector(CustomObjectView::onOpenHyperbolusUploadWebsite)},
+				{"Close", menu_selector(CustomObjectView::onClose)}
+			};
+		}
+		else
+		{
+			return
+			{
+				{"Add Editor", menu_selector(CustomObjectView::onEditor)},
+				{"Add Custom Objects", menu_selector(CustomObjectView::onCustomObjects)},
+				//{"Favorites", menu_selector(CustomObjectView::onComingSoon)},
+				{"Website", menu_selector(CustomObjectView::onWebsite)},
+				//{"Rate", menu_selector(CustomObjectView::onComingSoon)},
+				//{"Save as file", menu_selector(CustomObjectView::onSaveJson)},
+				//{"Copy json", menu_selector(CustomObjectView::onCopyJson)},
+				{"Close", menu_selector(CustomObjectView::onClose)}
+			};
+		}
+	};
+
+
+	for (const auto& [text, callback] : buttons())
 	{
 		auto spr = ButtonSprite::create(text);
 		spr->setScale(.5f);
@@ -100,6 +117,22 @@ void CustomObjectView::onComingSoon(CCObject*)
 	auto n = geode::Notification::create("Action coming soon");
 	n->setIcon(geode::NotificationIcon::Error);
 	n->show();
+}
+
+
+void CustomObjectView::onOpenHyperbolusUploadWebsite(CCObject*)
+{
+	geode::createQuickPopup
+	(
+		"Upload object", "You need a <cr>Hyperbolus account</c> to upload an object, open the upload website?", "Open Website", "Cancel", [this](FLAlertLayer*, bool btn)
+		{
+			if (!btn) //left button
+			{
+				auto str = fmt::format("https://hyperbolus.net/stencils/new?data={}&ref=2465", _data->object_string);
+				cocos2d::CCApplication::sharedApplication()->openURL(str.c_str());
+			}
+		}, true
+	);
 }
 
 CustomObjectView* CustomObjectView::create(CustomObjectData* data)

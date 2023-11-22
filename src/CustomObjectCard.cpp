@@ -46,21 +46,19 @@ bool CustomObjectCard::init(CCObject* target, SEL_MenuHandler callback)
 
 	geode::log::info("name: {}, author: {}", _objectData.name, _objectData.author.name);
 
-	if (!_objectData.name.empty())
-	{
-		auto nameLabel = CCLabelBMFont::create(_objectData.name.c_str(), "bigFont.fnt");
-		nameLabel->limitLabelWidth(90.0f, 0.5f, 0.0f);
-		nameLabel->setPosition(icons_bg->getPosition() - CCPoint(0.0f, 40.0f));
-		addChild(nameLabel);
-	}
 
-	if (!_objectData.author.name.empty())
-	{
-		auto authorLabel = CCLabelBMFont::create(_objectData.author.name.c_str(), "goldFont.fnt");
-		authorLabel->limitLabelWidth(90.0f, 0.5f, 0.0f);
-		authorLabel->setPosition(icons_bg->getPosition() - CCPoint(0.0f, 55.0f));
-		addChild(authorLabel);
-	}
+	const char* label = _objectData.name.empty() && _objectData.local ? "Text" : _objectData.name.c_str();
+	auto nameLabel = CCLabelBMFont::create(label, "bigFont.fnt");
+	nameLabel->limitLabelWidth(90.0f, 0.5f, 0.0f);
+	nameLabel->setPosition(icons_bg->getPosition() - CCPoint(0.0f, 40.0f));
+	addChild(nameLabel);
+
+
+	const char* label2 = _objectData.author.name.empty() && _objectData.local ? "Text" : _objectData.author.name.c_str();
+	auto authorLabel = CCLabelBMFont::create(label2, "goldFont.fnt");
+	authorLabel->limitLabelWidth(90.0f, 0.5f, 0.0f);
+	authorLabel->setPosition(icons_bg->getPosition() - CCPoint(0.0f, 55.0f));
+	addChild(authorLabel);
 
 	return true;
 }

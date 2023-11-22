@@ -7,6 +7,7 @@
 
 using namespace cocos2d;
 
+//exact decompilation of rob function - do not modify
 CCSprite* EditorUI_menuItemFromObjectString(std::string_view objectString)
 {
 	auto editor		 = LevelEditorLayer::get();
@@ -100,9 +101,9 @@ bool WorkshopPopup::setup()
 	buttonMenu->setLayout(ColumnLayout::create());
 	m_mainLayer->addChild(buttonMenu);
 
-	auto getBtn = [this](const char* title, SEL_MenuHandler callback = nullptr) {
-		auto on	 = SearchButton::create("GJ_longBtn02_001.png", title, 0.5f, nullptr);
-		auto off = SearchButton::create("GJ_longBtn01_001.png", title, 0.5f, nullptr);
+	auto getBtn = [this](const char* title, const char* title2, SEL_MenuHandler callback = nullptr) {
+		auto on	 = SearchButton::create("GJ_longBtn02_001.png", title, 0.4f, nullptr);
+		auto off = SearchButton::create("GJ_longBtn01_001.png", title2 ? title2 : title, 0.4f, nullptr);
 		on->setScale(0.7f);
 		off->setScale(0.7f);
 		return CCMenuItemToggler::create(off, on, this, callback);
@@ -111,7 +112,7 @@ bool WorkshopPopup::setup()
 	// buttonMenu->addChild(getBtn("trending"));
 	// buttonMenu->addChild(getBtn("recent"));
 	// buttonMenu->addChild(getBtn("favorite"));
-	buttonMenu->addChild(getBtn("Upload", menu_selector(WorkshopPopup::onUpload)));
+	buttonMenu->addChild(getBtn("My Objects", "Browse", menu_selector(WorkshopPopup::onUpload)));
 
 	auto alignLeft = [](CCNode* node, float posX, float offset) {
 		node->setPositionX(node->getPositionX() - (posX / 2) + (node->getContentSize().width / 2) + offset);
@@ -159,8 +160,8 @@ void WorkshopPopup::updatePageButtons()
 	}
 
 
-	auto addButton =
-		[this](CCMenuItemSpriteExtra** btn, CCSprite* spr, SEL_MenuHandler callback, bool updateLayout = false) {
+	auto addButton = [this](CCMenuItemSpriteExtra** btn, CCSprite* spr, SEL_MenuHandler callback, bool updateLayout = false)
+	{
 		spr->setScale(buttonScale);
 		*btn = CCMenuItemSpriteExtra::create(spr, nullptr, this, callback);
 		_selectPageMenu->addChild(*btn);
@@ -324,9 +325,10 @@ void WorkshopPopup::handleResponse(std::string_view resp)
 
 		geode::log::error("CATCHED: {}", e.what());
 		this->onClose(nullptr);
-		geode::createQuickPopup(
-			"Error", fmt::format("<cr>{}</c>", e.what()), "OK", nullptr, [](FLAlertLayer*, bool) {}, true);
-
+		geode::createQuickPopup
+		(
+			"Error", fmt::format("<cr>{}</c>", e.what()), "OK", nullptr, [](FLAlertLayer*, bool) {}, true
+		);
 		return;
 	}
 	_cardMenu->updateLayout();
@@ -377,11 +379,12 @@ void WorkshopPopup::openPageLocalObjects(int page)
 	int pageIndexEnd = pageFix * perPage + perPage;
 
 	geode::log::info("pageFix: {}, pageIndexEnd: {}", pageFix, pageIndexEnd);
-	try {
+	try
+	{
 		for (int i = pageFix * perPage; i < pageIndexEnd && static_cast<size_t>(i) < objs.size(); i++)
 		{
-			const std::string& str = objs.at(i); //this first so it can catch properly
-			auto card = CustomObjectCard::create({ .object_string = str, .local = true }, nullptr, nullptr);
+			std::string& str = objs.at(i); //this first so it can catch properly
+			auto card = CustomObjectCard::create({ .object_string = str, .local = true }, this, menu_selector(WorkshopPopup::onCard));
 			_cardMenu->addChild(card);
 		}
 	}
@@ -389,28 +392,17 @@ void WorkshopPopup::openPageLocalObjects(int page)
 	{
 		geode::log::error("out of bounds");
 	}
-	geode::log::info("aaaaaaaaaa");
 	setCurrentPage(page);
-	geode::log::info("bbbbbb");
 
 	_maxPage = objs.size() / 6;
+
 	if (objs.size() % 6 != 0) //if there are enough for a no full page
 	{
 		_maxPage += 1;
 	}
-	geode::log::info("ccccccc");
-
-
 
 	updatePageButtons();
-	geode::log::info("dddddddddd");
-
-	fillEmpty();
-	geode::log::info("eeeeeeeeeee");
-
 	_cardMenu->updateLayout();
-	geode::log::info("ffffffffffffff");
-
 }
 
 void WorkshopPopup::setCurrentPage(int page)
