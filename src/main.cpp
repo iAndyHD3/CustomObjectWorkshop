@@ -8,21 +8,6 @@
 
 using namespace cocos2d;
 
-struct MenuLayerExt : geode::Modify<MenuLayerExt, MenuLayer>
-{
-	void onMoreGames(CCObject*)
-	{
-		// CCDictionary* customObjects = GameManager::sharedState()->m_customObjectDict;
-		// CCDictElement* pElement;
-		// CCDICT_FOREACH(customObjects, pElement)
-		//{
-		//	const char* key = pElement->getStrKey();
-		//	CCString* str = (CCString*)pElement->getObject();
-		//	log::info("key: {}, str:{}\n", key, str->getCString());
-		// }
-		//WorkshopPopup::create()->show();
-	}
-};
 
 ButtonSprite* createEditorButtonSprite(const char* top, const char* bg = "GJ_button_01.png") {
 	return ButtonSprite::create(
