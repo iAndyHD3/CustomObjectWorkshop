@@ -3,6 +3,8 @@
 #include <utility>
 #include <Geode/modify/EditorUI.hpp>
 #include <fmt/format.h>
+#include "CustomObjectCard.h"
+
 
 using namespace cocos2d;
 
@@ -28,10 +30,18 @@ bool CustomObjectView::setup(CustomObjectData* data)
 	floor->setScale(0.8f);
 	m_mainLayer->addChild(floor);
 
-	auto preview = CCLabelBMFont::create("Object preview here", "bigFont.fnt");
-	preview->setScale(.6f);
-	preview->setPosition(center + CCPoint(0.0f, 65.0f));
-	m_mainLayer->addChild(preview);
+	//auto preview = CCLabelBMFont::create("Object preview here", "bigFont.fnt");
+	//preview->setScale(.6f);
+	//preview->setPosition(center + CCPoint(0.0f, 65.0f));
+	//m_mainLayer->addChild(preview);
+
+	if (LevelEditorLayer::get())
+	{
+		auto prev = CustomObjectCard::getCustomObjectPreview(_data->object_string);
+		prev->setScale(prev->getScale() * 2);
+		prev->setPosition(center + CCPoint(0.0f, 65.0f));
+		m_mainLayer->addChild(prev);
+	}
 
 	auto btnMenu = CCMenu::create();
 	btnMenu->setContentSize({325.0f, 75.0f});
@@ -41,28 +51,17 @@ bool CustomObjectView::setup(CustomObjectData* data)
 
 
 	auto buttons = [this]() -> std::vector<std::pair<const char*, SEL_MenuHandler>> {
-		if (_data->local)
-		{
 			return
 			{
-				{"Upload Object", menu_selector(CustomObjectView::onOpenHyperbolusUploadWebsite)},
-				{"Close", menu_selector(CustomObjectView::onClose)}
-			};
-		}
-		else
-		{
-			return
-			{
-				{"Add Editor", menu_selector(CustomObjectView::onEditor)},
-				{"Add Custom Objects", menu_selector(CustomObjectView::onCustomObjects)},
+				//{"Add Editor", menu_selector(CustomObjectView::onEditor)},
+				{"Add to Custom Objects", menu_selector(CustomObjectView::onCustomObjects)},
 				//{"Favorites", menu_selector(CustomObjectView::onComingSoon)},
 				{"Website", menu_selector(CustomObjectView::onWebsite)},
 				//{"Rate", menu_selector(CustomObjectView::onComingSoon)},
 				//{"Save as file", menu_selector(CustomObjectView::onSaveJson)},
-				//{"Copy json", menu_selector(CustomObjectView::onCopyJson)},
+				{"Copy string to clipboard", menu_selector(CustomObjectView::onCopyStringClipboard)},
 				{"Close", menu_selector(CustomObjectView::onClose)}
 			};
-		}
 	};
 
 
@@ -109,7 +108,70 @@ void CustomObjectView::onCustomObjects(CCObject*)
 	}
 }
 
-void CustomObjectView::onCopyJson(CCObject*) {}
+static void CopyToClipboard(std::string_view text) {
+	// Open the clipboard
+	if (!OpenClipboard(nullptr)) {
+		// Handle error if clipboard cannot be opened
+		// You can add appropriate error handling here
+		return;
+	}
+
+	// Empty the clipboard
+	if (!EmptyClipboard()) {
+		// Handle error if clipboard cannot be emptied
+		// You can add appropriate error handling here
+		CloseClipboard();
+		return;
+	}
+
+	// Get the length of the text
+	const size_t textLength = text.length();
+
+	// Allocate global memory to hold the text
+	HGLOBAL hClipboardData = GlobalAlloc(GMEM_DDESHARE, (textLength + 1) * sizeof(char));
+	if (hClipboardData == nullptr) {
+		// Handle error if memory allocation fails
+		// You can add appropriate error handling here
+		CloseClipboard();
+		return;
+	}
+
+	// Lock the global memory handle and get a pointer to the memory
+	char* pClipboardData = static_cast<char*>(GlobalLock(hClipboardData));
+	if (pClipboardData == nullptr) {
+		// Handle error if memory locking fails
+		// You can add appropriate error handling here
+		GlobalFree(hClipboardData);
+		CloseClipboard();
+		return;
+	}
+
+	// Copy the text to the global memory
+	memcpy(pClipboardData, text.data(), textLength * sizeof(char));
+
+	// Null-terminate the text
+	pClipboardData[textLength] = '\0';
+
+	// Unlock the global memory
+	GlobalUnlock(hClipboardData);
+
+	// Set the clipboard data
+	if (!SetClipboardData(CF_TEXT, hClipboardData)) {
+		// Handle error if clipboard data cannot be set
+		// You can add appropriate error handling here
+		GlobalFree(hClipboardData);
+		CloseClipboard();
+		return;
+	}
+
+	// Close the clipboard
+	CloseClipboard();
+}
+
+void CustomObjectView::onCopyStringClipboard(CCObject*)
+{
+	CopyToClipboard(_data->object_string);
+}
 void CustomObjectView::onSaveJson(CCObject*) {}
 
 void CustomObjectView::onComingSoon(CCObject*)
@@ -117,22 +179,6 @@ void CustomObjectView::onComingSoon(CCObject*)
 	auto n = geode::Notification::create("Action coming soon");
 	n->setIcon(geode::NotificationIcon::Error);
 	n->show();
-}
-
-
-void CustomObjectView::onOpenHyperbolusUploadWebsite(CCObject*)
-{
-	geode::createQuickPopup
-	(
-		"Upload object", "You need a <cr>Hyperbolus account</c> to upload an object, open the upload website?", "Open Website", "Cancel", [this](FLAlertLayer*, bool btn)
-		{
-			if (!btn) //left button
-			{
-				auto str = fmt::format("https://hyperbolus.net/stencils/new?data={}&ref=2465", _data->object_string);
-				cocos2d::CCApplication::sharedApplication()->openURL(str.c_str());
-			}
-		}, true
-	);
 }
 
 CustomObjectView* CustomObjectView::create(CustomObjectData* data)

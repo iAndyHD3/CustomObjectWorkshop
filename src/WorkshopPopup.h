@@ -9,10 +9,14 @@ struct WorkshopPopup : public geode::Popup<>
 
 	cocos2d::CCMenu* _cardMenu		 = nullptr;
 	cocos2d::CCMenu* _selectPageMenu = nullptr;
+	cocos2d::CCMenu* _buttonMenu = nullptr;
 
 	CCMenuItemSpriteExtra* _prevBtn		   = nullptr;
 	CCMenuItemSpriteExtra* _currentPageBtn = nullptr;
 	CCMenuItemSpriteExtra* _nextBtn		   = nullptr;
+
+	CCMenuItemToggler* _browseBtn = nullptr;
+	CCMenuItemToggler* _myObjectsBtn = nullptr;
 
 	LoadingCircle* _loadingCircle = nullptr;
 	bool _makingRequest			  = false;
@@ -32,6 +36,7 @@ struct WorkshopPopup : public geode::Popup<>
 	void onPrevious(cocos2d::CCObject*);
 	void onCard(cocos2d::CCObject*);
 	void onUpload(cocos2d::CCObject*);
+	void onLocalObject(cocos2d::CCObject*);
 
 	bool addCard(const json::Value& j);
 	bool addEmptyCard(bool visible = true);

@@ -13,8 +13,7 @@ struct CustomObjectView : public geode::Popup<CustomObjectData*>
 	void onFavorites(CCObject*);
 	void onEditor(CCObject*);
 	void onCustomObjects(CCObject*);
-	void onCopyJson(CCObject*);
+	void onCopyStringClipboard(CCObject*);
 	void onSaveJson(CCObject*);
 	void onComingSoon(CCObject*);
-	void onOpenHyperbolusUploadWebsite(CCObject*);
 };

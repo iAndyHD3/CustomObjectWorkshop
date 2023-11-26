@@ -4,83 +4,10 @@
 #include "json.hpp"
 #include <Geode/utils/web.hpp>
 #include <fmt/format.h>
+#include <utility>
+
 
 using namespace cocos2d;
-
-//exact decompilation of rob function - do not modify
-CCSprite* EditorUI_menuItemFromObjectString(std::string_view objectString)
-{
-	auto editor		 = LevelEditorLayer::get();
-	CCArray* objects = editor->createObjectsFromString(std::string(objectString), true);
-	auto v8			 = CCSprite::create();
-
-	CCPoint originPos{1000.0f, 1000.0f};
-
-	EditorUI::get()->repositionObjectsToCenter(objects, originPos, true);
-
-	int count = objects->count();
-
-	float v14 = 0.0f;
-	float v10 = 0.0f;
-	float v12 = 0.0f;
-	float v13 = 0.0f;
-
-	for (int i = 0; i < count; i++)
-	{
-		auto obj = reinterpret_cast<GameObject*>(objects->objectAtIndex(i));
-		editor->removeObject(obj, true);
-		obj->setPosition(obj->getPosition() - originPos);
-		v8->addChild(obj);
-
-		auto& texture = obj->getObjectTextureRect();
-		float minX	  = texture.getMinY();
-		float maxX	  = texture.getMaxX();
-		float minY	  = texture.getMinY();
-		float maxY	  = texture.getMaxY();
-
-		bool v28 = v14 == 0.0f;
-		if (v14 == 0.0) v14 = minX;
-
-		if (!v28 && minX < v14) v14 = minX;
-
-		if (v13 == 0.0)
-		{
-			v13 = maxX;
-		}
-		else if (maxX > v13)
-		{
-			v13 = maxX;
-		}
-		if (v12 == 0.0)
-		{
-			v12 = minY;
-		}
-		else if (minY < v12)
-		{
-			v12 = minY;
-		}
-		if (v10 == 0.0)
-		{
-			v10 = maxY;
-		}
-		else if (maxY > v10)
-		{
-			v10 = maxY;
-		}
-	}
-
-	v8->setContentSize({v13 - v14, v10 - v12});
-	for (int i = 0; i < count; i++)
-	{
-		auto object = reinterpret_cast<GameObject*>(objects->objectAtIndex(i));
-		object->setPosition(v8->convertToNodeSpace(object->getPosition()));
-	}
-	auto& contentSize = v8->getContentSize();
-
-	float sizeDiv = contentSize.width <= contentSize.height ? contentSize.height : contentSize.width;
-	v8->setScale(40.0f / sizeDiv);
-	return v8;
-}
 
 bool WorkshopPopup::addCard(const json::Value& j)
 {
@@ -97,13 +24,13 @@ bool WorkshopPopup::setup()
 	// m_title->setVisible(false);
 	// this->setTitle("Custom Object Workshop");
 
-	auto buttonMenu = CCMenu::create();
-	buttonMenu->setLayout(ColumnLayout::create());
-	m_mainLayer->addChild(buttonMenu);
+	_buttonMenu = CCMenu::create();
+	_buttonMenu->setLayout(ColumnLayout::create());
+	m_mainLayer->addChild(_buttonMenu);
 
-	auto getBtn = [this](const char* title, const char* title2, SEL_MenuHandler callback = nullptr) {
-		auto on	 = SearchButton::create("GJ_longBtn02_001.png", title, 0.4f, nullptr);
-		auto off = SearchButton::create("GJ_longBtn01_001.png", title2 ? title2 : title, 0.4f, nullptr);
+	auto getBtn = [this](const char* title, const char* title2, float scale, SEL_MenuHandler callback = nullptr) {
+		auto on	 = SearchButton::create("GJ_longBtn02_001.png", title, scale, nullptr);
+		auto off = SearchButton::create("GJ_longBtn01_001.png", title2 ? title2 : title, scale, nullptr);
 		on->setScale(0.7f);
 		off->setScale(0.7f);
 		return CCMenuItemToggler::create(off, on, this, callback);
@@ -112,16 +39,21 @@ bool WorkshopPopup::setup()
 	// buttonMenu->addChild(getBtn("trending"));
 	// buttonMenu->addChild(getBtn("recent"));
 	// buttonMenu->addChild(getBtn("favorite"));
-	buttonMenu->addChild(getBtn("My Objects", "Browse", menu_selector(WorkshopPopup::onUpload)));
+
+	_browseBtn = getBtn("Browse", nullptr, 0.6f, menu_selector(WorkshopPopup::onUpload));
+	_myObjectsBtn = getBtn("My Objects", nullptr, 0.4f, menu_selector(WorkshopPopup::onLocalObject));
+
+	_buttonMenu->addChild(_browseBtn);
+	_buttonMenu->addChild(_myObjectsBtn);
 
 	auto alignLeft = [](CCNode* node, float posX, float offset) {
 		node->setPositionX(node->getPositionX() - (posX / 2) + (node->getContentSize().width / 2) + offset);
 	};
 
-	buttonMenu->updateLayout();
+	_buttonMenu->updateLayout();
 
 	constexpr float btnOffsetX = 10.0f;
-	alignLeft(buttonMenu, m_size.width, btnOffsetX);
+	alignLeft(_buttonMenu, m_size.width, btnOffsetX);
 
 	_cardMenu = CCMenu::create();
 	_cardMenu->setContentSize({350, 260});
@@ -195,10 +127,7 @@ void WorkshopPopup::updatePageButtons()
 		spr->setFlipX(true);
 		addButton(&_nextBtn, spr, menu_selector(WorkshopPopup::onNext), true);
 	}
-	else
-	{
 		_nextBtn->setVisible(_currentPage < _maxPage);
-	}
 }
 
 std::string WorkshopPopup::getMainApiEndpoint(int page)
@@ -243,13 +172,13 @@ void WorkshopPopup::onCard(cocos2d::CCObject* sender)
 	}
 }
 
-std::vector<std::string> getLocalCustomObjectStrings()
+std::vector<CCString*> getLocalCustomObjectStrings()
 {
-	std::vector<std::string> ret;
+	std::vector<CCString*> ret;
 	auto dict = geode::cocos::CCDictionaryExt<int, CCString>(GameManager::sharedState()->m_customObjectDict);
 	for (const auto& [id, str] : dict)
 	{
-		ret.emplace_back(str->getCString());
+		ret.emplace_back(str);
 	}
 
 	return ret;
@@ -259,16 +188,18 @@ void WorkshopPopup::onUpload(cocos2d::CCObject* sender)
 {
 	if (_makingRequest) return;
 
-	bool on = !reinterpret_cast<CCMenuItemToggler*>(sender)->isOn();
+	bool on = reinterpret_cast<CCMenuItemToggler*>(sender)->isOn();
 
-	if (on)
-	{
-		openPageLocalObjects(0);
-	}
-	else
+	if (!on)
 	{
 		_selectPageMenu->setVisible(false);
 		openPageHyperBolus(getMainApiEndpoint(0));
+	}
+	else
+	{
+		geode::Loader::get()->queueInMainThread([this] {
+			reinterpret_cast<CCMenuItemToggler*>(_browseBtn)->toggle(true);
+		});
 	}
 }
 
@@ -276,6 +207,7 @@ void WorkshopPopup::openPageHyperBolus(std::string_view apiurl)
 {
 	if (_makingRequest) return;
 
+	_buttonMenu->setVisible(false);
 	_makingRequest = true;
 
 	_cardMenu->removeAllChildrenWithCleanup(true);
@@ -286,7 +218,11 @@ void WorkshopPopup::openPageHyperBolus(std::string_view apiurl)
 		.text()
 		.then([this](const std::string& r) {
 		handleResponse(r);
-	}).cancelled([this](auto) { _makingRequest = false; });
+	}).cancelled([this](auto)
+	{
+		_makingRequest = false;
+		_buttonMenu->setVisible(true);
+	});
 }
 
 void WorkshopPopup::updateMembers(const json::Value& resp)
@@ -306,6 +242,9 @@ void WorkshopPopup::handleResponse(std::string_view resp)
 {
 	_makingRequest = false;
 	_uploadPage = false;
+	_buttonMenu->setVisible(true);
+	_browseBtn->toggle(true);
+	_myObjectsBtn->toggle(false);
 
 	geode::log::info("resp: {}", resp);
 	if (!_cardMenu) return;
@@ -364,8 +303,8 @@ bool WorkshopPopup::addEmptyCard(bool visible)
 void WorkshopPopup::openPageLocalObjects(int page)
 {
 	_uploadPage = true;
-
-	std::vector<std::string> objs = getLocalCustomObjectStrings();
+	_browseBtn->toggle(false);
+	std::vector<CCString*> objs = getLocalCustomObjectStrings();
 	if (objs.empty())
 	{
 		//TODO
@@ -378,13 +317,18 @@ void WorkshopPopup::openPageLocalObjects(int page)
 	int pageFix      = page <= 0 ? 0 : page - 1; //first page index must be 0 instead of 1
 	int pageIndexEnd = pageFix * perPage + perPage;
 
-	geode::log::info("pageFix: {}, pageIndexEnd: {}", pageFix, pageIndexEnd);
 	try
 	{
 		for (int i = pageFix * perPage; i < pageIndexEnd && static_cast<size_t>(i) < objs.size(); i++)
 		{
-			std::string& str = objs.at(i); //this first so it can catch properly
-			auto card = CustomObjectCard::create({ .object_string = str, .local = true }, this, menu_selector(WorkshopPopup::onCard));
+			CCString* str = objs.at(i); //this first so it can catch properly
+			CustomObjectCard* card = CustomObjectCard::create(
+				{ .object_string = str->getCString(), .local = true},
+				nullptr,
+				nullptr
+			);
+
+			card->setUserObject(str);
 			_cardMenu->addChild(card);
 		}
 	}
@@ -403,6 +347,24 @@ void WorkshopPopup::openPageLocalObjects(int page)
 
 	updatePageButtons();
 	_cardMenu->updateLayout();
+}
+
+void WorkshopPopup::onLocalObject(CCObject* sender)
+{
+	if (_makingRequest) return;
+
+	bool on = reinterpret_cast<CCMenuItemToggler*>(sender)->isOn();
+	if (!on)
+	{
+		openPageLocalObjects(0);
+	}
+	else
+	{
+		geode::Loader::get()->queueInMainThread([this]
+		{
+			reinterpret_cast<CCMenuItemToggler*>(_myObjectsBtn)->toggle(true);
+		});
+	}
 }
 
 void WorkshopPopup::setCurrentPage(int page)
